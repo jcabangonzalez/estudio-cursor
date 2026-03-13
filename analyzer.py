@@ -1,5 +1,6 @@
 print("Script started")
 import re
+import json
 from collections import Counter
 
 log_pattern = re.compile(
@@ -37,7 +38,7 @@ def detect_scanners(ip_counter, scan_threshold=20):
 
     return scanners
  
- 
+
 def analyze_file(filepath: str, login_url: str = "/login"):
     ips = Counter()
     login_attempts = Counter()
@@ -94,7 +95,9 @@ def analyze_file(filepath: str, login_url: str = "/login"):
     }
 
 def print_report(results, top: int = 10, bf_threshold: int = 3):
+    print("Printing report...")
     if results.get("error"):
+        print("Error found")
         err = results["error"]
         path = results.get("filepath")
         if err == "not_found":
@@ -104,27 +107,14 @@ def print_report(results, top: int = 10, bf_threshold: int = 3):
         else:
             print(f"Error: {err}")
         return
-    if results["scanners"]:
-        print("\nPossible scanning activity:")
-        for ip, n in results["scanners"].items():
-            print(ip, n)
+def save_json_report(results, top=10, bf_threshold=3, output_file="report.json"):
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=4, default=str)
 
-    print(f"\nArchivo: {results['filepath']}")
-    print(f"Total requests: {results['total_requests']}")
-    print(f"Líneas parseadas: {results['parsed_lines']}")
-    print(f"Errores 4xx: {results['errors_4xx']}")
-    print(f"Errores 5xx: {results['errors_5xx']}")
+    print(f"\nJSON report saved to: {output_file}")
 
-    print(f"\nTop {top} IPs:")
-    for ip, count in results["ips"].most_common(top):
-        print(ip, count)
-
-    suspects = [(ip, n) for ip, n in results["login_attempts"].items() if n > bf_threshold]
-    if suspects:
-        print(f"\nPossible brute force (>{bf_threshold} intentos):")
-        for ip, n in sorted(suspects, key=lambda x: x[1], reverse=True):
-            print(ip, n)
-    
+   
+   
     
 if __name__ == "__main__":
     import sys
@@ -142,5 +132,7 @@ if __name__ == "__main__":
     print(results)
 
     print_report(results)
+    
+    save_json_report(results)
     
     
