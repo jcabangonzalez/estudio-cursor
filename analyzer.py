@@ -37,10 +37,19 @@ def detect_scanners(ip_counter, scan_threshold=20):
             scanners[ip] = count
 
     return scanners
- 
 
+def detect_bursts(burst_counter, threshold=50):
+    bursts = {}
+    for clave, count in burst_counter.items():
+        if count >= threshold:
+            # Convertimos la tupla (ip, minuto) en un solo texto "ip | minuto"
+            texto_clave = f"{clave[0]} | {clave[1]}"
+            bursts[texto_clave] = count
+    return bursts
+ 
 def analyze_file(filepath: str, login_url: str = "/login"):
     ips = Counter()
+    burst_counter = Counter() # <-- Asegúrate de que esta línea esté al inicio de esta función
     login_attempts = Counter()
     errors_4xx = 0
     errors_5xx = 0
@@ -58,7 +67,9 @@ def analyze_file(filepath: str, login_url: str = "/login"):
                 parsed_lines += 1
                 total_requests += 1
                 ips[parsed["ip"]] += 1
-
+                t = parsed["datetime"].split(':')
+                minuto_clave = f"{t[0]}:{t[1]}:{t[2]}"
+                burst_counter[(parsed["ip"], minuto_clave)] += 1
                 if parsed["method"] == "POST" and parsed["url"] == login_url:
                     login_attempts[parsed["ip"]] += 1
 
@@ -70,6 +81,7 @@ def analyze_file(filepath: str, login_url: str = "/login"):
 
         suspicious_ips = detect_suspicious_ips(ips)
         scanners = detect_scanners(ips)
+        burst_attacks = detect_bursts(burst_counter, threshold=2)
         print("\nSuspicious IPs:")
 
         for ip, count in suspicious_ips.items():
@@ -91,48 +103,7 @@ def analyze_file(filepath: str, login_url: str = "/login"):
         "errors_5xx": errors_5xx,
         "ips": ips,
         "login_attempts": login_attempts,
-        "scanners": scanners
+        "scanners": scanners,
+        "bursts": burst_attacks  # <--- ¡No olvides añadir esto!
     }
-
-def print_report(results, top: int = 10, bf_threshold: int = 3):
-    print("Printing report...")
-    if results.get("error"):
-        print("Error found")
-        err = results["error"]
-        path = results.get("filepath")
-        if err == "not_found":
-            print(f"Error: archivo no encontrado: {path}")
-        elif err == "permission":
-            print(f"Error: sin permisos para leer: {path}")
-        else:
-            print(f"Error: {err}")
-        return
-def save_json_report(results, top=10, bf_threshold=3, output_file="report.json"):
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=4, default=str)
-
-    print(f"\nJSON report saved to: {output_file}")
-
-   
-   
-    
-if __name__ == "__main__":
-    import sys
-
-    print("Running analyzer...")
-
-    if len(sys.argv) < 2:
-        print("Uso: python3 analyzer.py <logfile>")
-        sys.exit(1)
-
-    filepath = sys.argv[1]
-
-    results = analyze_file(filepath)
-
-    print(results)
-
-    print_report(results)
-    
-    save_json_report(results)
-    
     
