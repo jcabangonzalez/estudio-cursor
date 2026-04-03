@@ -29,13 +29,43 @@ def main():
     if args.command == "apache":
         results = analyze_apache_file(args.logfile, login_url=args.login_url)
         print_apache_report(results, top=args.top, bf_threshold=args.bf_threshold)
+
+        if results.get("risk_report"):
+            import json, os
+            from dotenv import load_dotenv
+            from anthropic import Anthropic
+            from google import genai
+
+            load_dotenv()
+            print("\n--- STARTING AI SECURITY ANALYSIS ---")
+            report_text = json.dumps(results["risk_report"], indent=2)
+
+            try:
+                print(">> Requesting analysis from Anthropic...")
+                client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+                response = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=1000,
+                    messages=[{"role": "user", "content": f"Analyze these IPs and tell me who to block: {report_text}"}]
+                )
+                print(">> Success with Anthropic!\n")
+                print("=== AI SECURITY REPORT ===")
+                print(response.content[0].text)
+
+            except Exception as e:
+                print(f">> Anthropic failed: {e}")
+                print(">> Connecting to Gemini...")
+                gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+                response = gemini.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=f"Analyze these IPs and tell me who to block: {report_text}"
+                )
+                print(">> Success with Gemini!\n")
+                print("=== AI SECURITY REPORT ===")
+                print(response.text)
         return
 
     if args.command == "juice":
         results = analyze_juice_logs(args.logfile)
         print_juice_report(results, top=args.top)
         return
-
-
-if __name__ == "__main__":
-    main()
