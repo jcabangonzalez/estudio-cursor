@@ -1,25 +1,27 @@
 # LogSec Toolkit
 
-Lightweight defensive log analysis toolkit for Apache access logs and OWASP Juice Shop docker logs.
-
----
+Defensive log analysis CLI for Apache access logs and OWASP Juice Shop docker logs.
+Combines rule-based threat detection with AI-powered analysis (Claude + Gemini fallback).
 
 ## Features
-
-- Apache/Nginx access log analysis
-- Top IP detection
+- Apache/Nginx access log parsing
+- Top IP detection and traffic analysis
 - 4xx / 5xx error tracking
-- Brute-force login heuristic detection
-- OWASP Juice Shop docker log analysis
-- Detection of solved security challenges (lab indicators)
-- JSON report export (`--out`)
+- Brute-force login detection
+- Vulnerability scanner detection
+- Flood/DDoS pattern detection
+- Unified risk scoring per IP (LOW / MEDIUM / HIGH / CRITICAL)
+- AI-powered security report via Claude API (Gemini fallback)
 
----
+## Setup
+pip install anthropic google-genai python-dotenv requests
+Create .env with ANTHROPIC_API_KEY and GEMINI_API_KEY
 
 ## Usage
+PYTHONPATH=logsec-toolkit/src python3 -m logsec apache logsec-toolkit/samples/access.log
 
-### Apache logs
-
-```bash
-PYTHONPATH=src python3 -m logsec.cli apache samples/access.log --top 5
-PYTHONPATH=src python3 -m logsec.cli apache samples/access.log --top 5 --out reports/apache_report.jsonPYTHONPATH=src python3 -m logsec.cli juice samples/juice_shop_docker.log --top 10PYTHONPATH=src python3 -m logsec.cli juice samples/juice_shop_docker.log --top 10 --out reports/juice_report.json
+## Stack
+- Python 3.10+
+- Anthropic Claude API (claude-haiku-4-5)
+- Google Gemini API (fallback)
+- argparse, collections, re, dotenv
