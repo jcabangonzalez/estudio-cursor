@@ -14,7 +14,7 @@ def build_parser():
     ap.add_argument("--top", type=int, default=10, help="Top N IPs (default: 10)")
     ap.add_argument("--login-url", default="/login", help="Login URL to track (default: /login)")
     ap.add_argument("--bf-threshold", type=int, default=3, help="Brute-force threshold (default: 3)")
-
+    ap.add_argument("--output", help="Save risk report as JSON file (e.g. report.json)")
     # Juice Shop (docker logs)
     js = sub.add_parser("juice", help="Analyze OWASP Juice Shop docker logs")
     js.add_argument("logfile", help="Path to juice_shop_docker.log")
@@ -29,7 +29,11 @@ def main():
     if args.command == "apache":
         results = analyze_apache_file(args.logfile, login_url=args.login_url)
         print_apache_report(results, top=args.top, bf_threshold=args.bf_threshold)
-
+        if args.output and results.get("risk_report"):
+            import json
+            with open(args.output, "w") as f:
+                json.dump(results["risk_report"], f, indent=2)
+            print(f"\n[+] Risk report saved to {args.output}")
         if results.get("risk_report"):
             import json, os
             from dotenv import load_dotenv
