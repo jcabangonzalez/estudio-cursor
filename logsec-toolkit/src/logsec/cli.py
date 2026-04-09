@@ -8,14 +8,14 @@ def build_parser():
     p = argparse.ArgumentParser(description="LogSec Toolkit (Apache + Juice Shop log detection)")
     sub = p.add_subparsers(dest="command", required=True)
 
-    # Apache
     ap = sub.add_parser("apache", help="Analyze Apache/Nginx access logs")
     ap.add_argument("logfile", help="Path to access.log")
     ap.add_argument("--top", type=int, default=10, help="Top N IPs (default: 10)")
     ap.add_argument("--login-url", default="/login", help="Login URL to track (default: /login)")
     ap.add_argument("--bf-threshold", type=int, default=3, help="Brute-force threshold (default: 3)")
     ap.add_argument("--output", help="Save risk report as JSON file (e.g. report.json)")
-    # Juice Shop (docker logs)
+    ap.add_argument("--no-ai", action="store_true", help="Skip AI analysis and show risk report only")
+
     js = sub.add_parser("juice", help="Analyze OWASP Juice Shop docker logs")
     js.add_argument("logfile", help="Path to juice_shop_docker.log")
     js.add_argument("--top", type=int, default=10, help="Top N (default: 10)")
@@ -29,12 +29,14 @@ def main():
     if args.command == "apache":
         results = analyze_apache_file(args.logfile, login_url=args.login_url)
         print_apache_report(results, top=args.top, bf_threshold=args.bf_threshold)
+
         if args.output and results.get("risk_report"):
             import json
             with open(args.output, "w") as f:
                 json.dump(results["risk_report"], f, indent=2)
             print(f"\n[+] Risk report saved to {args.output}")
-        if results.get("risk_report"):
+
+        if results.get("risk_report") and not args.no_ai:
             import json, os
             from dotenv import load_dotenv
             from anthropic import Anthropic
@@ -73,3 +75,7 @@ def main():
         results = analyze_juice_logs(args.logfile)
         print_juice_report(results, top=args.top)
         return
+
+
+if __name__ == "__main__":
+    main()
