@@ -169,7 +169,10 @@ def print_report(results, top: int = 10, bf_threshold: int = 3):
         print("\n=== RISK REPORT ===")
         for entry in risk_report:
             if entry["score"] > 0:
-                print(f"[{entry['risk_level']}] {entry['ip']} (score: {entry['score']})")
+                colors = {"CRITICAL": "\033[91m", "HIGH": "\033[93m", "MEDIUM": "\033[97m", "LOW": "\033[92m"}
+                reset = "\033[0m"
+                color = colors.get(entry['risk_level'], reset)
+                print(f"{color}[{entry['risk_level']}] {entry['ip']} (score: {entry['score']}){reset}")
                 for reason in entry["reasons"]:
                     print(f"  → {reason}")
 
